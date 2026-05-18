@@ -1,0 +1,352 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// === NextAuth用 ===
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  companies     Company[]
+  caseLogs      CaseLog[]
+  templates     EmailTemplate[]
+  tasks         Task[]
+  notes         Note[]
+  meetings      Meeting[]
+  careerEntries CareerEntry[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Stripe サブスクリプション管理
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// === ドメインモデル ===
+model Company {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  industry      String?
+  position      String?
+  location      String?
+  size          String?
+  url           String?
+  logoUrl       String?
+  priority      Int      @default(3)
+  status        String   @default("applied")
+  starred       Boolean  @default(false)
+  notes         String?
+  appliedAt     DateTime?
+  archivedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  stages        Stage[]
+  events        Event[]
+  caseLogs      CaseLog[]
+  contacts      Contact[]
+  attachments   Attachment[]
+  tasks         Task[]
+  entrySheets   EntrySheet[]
+  interviewLogs InterviewLog[]
+  meetings      Meeting[]
+  companyNotes  Note[]
+
+  @@index([userId, status])
+  @@index([userId, priority])
+}
+
+model Stage {
+  id            String        @id @default(cuid())
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name          String
+  order         Int
+  status        String        @default("pending")
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  result        String?
+  feedback      String?
+  duration      Int?
+  interviewer   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  interviewLogs InterviewLog[]
+
+  @@index([companyId, order])
+}
+
+model Event {
+  id         String   @id @default(cuid())
+  companyId  String?
+  company    Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title      String
+  type       String
+  startAt    DateTime
+  endAt      DateTime?
+  location   String?
+  url        String?
+  notes      String?
+  reminderAt DateTime?
+  reminded   Boolean  @default(false)
+  completed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([startAt])
+  @@index([companyId])
+}
+
+model CaseLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title        String
+  category     String?
+  prompt       String
+  premise      String?
+  structure    String?
+  analysis     String?
+  conclusion   String?
+  feedback     String?
+  rating       Int?
+  difficulty   Int      @default(3)
+  duration     Int?
+  practiceWith String?
+  tags         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Contact {
+  id        String    @id @default(cuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  role      String?
+  email     String?
+  phone     String?
+  notes     String?
+  linkedIn  String?
+  important Boolean  @default(false)
+  createdAt DateTime  @default(now())
+  meetings  Meeting[]
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  url       String
+  kind      String
+  mimeType  String?
+  size      Int?
+  thumbnail String?
+  createdAt DateTime @default(now())
+}
+
+model EmailTemplate {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  category   String?
+  subject    String
+  body       String
+  tags       String?
+  usageCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// === Phase A-1 新規モデル ===
+
+model Task {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId   String?
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  status      String   @default("todo")
+  priority    Int      @default(3)
+  dueAt       DateTime?
+  completedAt DateTime?
+  tags        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([companyId])
+  @@index([dueAt])
+}
+
+model EntrySheet {
+  id          String       @id @default(cuid())
+  companyId   String
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title       String
+  status      String       @default("draft")
+  submittedAt DateTime?
+  deadline    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  questions   EsQuestion[]
+
+  @@index([companyId])
+}
+
+model EsQuestion {
+  id           String     @id @default(cuid())
+  entrySheetId String
+  entrySheet   EntrySheet @relation(fields: [entrySheetId], references: [id], onDelete: Cascade)
+  order        Int
+  question     String
+  answer       String?
+  charLimit    Int?
+  charCount    Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([entrySheetId, order])
+}
+
+model InterviewLog {
+  id               String   @id @default(cuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stageId          String?
+  stage            Stage?   @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  type             String
+  conductedAt      DateTime
+  duration         Int?
+  interviewerName  String?
+  interviewerRole  String?
+  questions        String?
+  myAnswers        String?
+  feedback         String?
+  rating           Int?
+  outcome          String?
+  nextStepNotes    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model Meeting {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contactId    String?
+  contact      Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  type         String
+  title        String
+  conductedAt  DateTime
+  duration     Int?
+  location     String?
+  topics       String?
+  insights     String?
+  followUp     String?
+  thankYouSent Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([companyId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  category  String?
+  tags      String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model CareerEntry {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String
+  title        String
+  organization String?
+  role         String?
+  startAt      DateTime
+  endAt        DateTime?
+  description  String?
+  takeaways    String?
+  skills       String?
+  url          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, startAt])
+}

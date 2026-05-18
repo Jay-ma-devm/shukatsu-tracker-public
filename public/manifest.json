@@ -1,0 +1,37 @@
+{
+  "name": "就活トラッカー",
+  "short_name": "就活",
+  "description": "Demo Userの就活選考管理アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "education"],
+  "lang": "ja",
+  "shortcuts": [
+    {
+      "name": "ダッシュボード",
+      "url": "/",
+      "description": "ダッシュボードを開く"
+    },
+    {
+      "name": "企業管理",
+      "url": "/companies",
+      "description": "企業一覧を開く"
+    },
+    {
+      "name": "タスク",
+      "url": "/tasks",
+      "description": "タスク一覧を開く"
+    }
+  ]
+}

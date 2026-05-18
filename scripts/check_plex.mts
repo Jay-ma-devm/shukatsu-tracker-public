@@ -1,0 +1,12 @@
+import { createClient } from '@libsql/client';
+const client = createClient({ url: process.env.DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN! });
+const plex = await client.execute("SELECT id FROM Company WHERE userId='local-user' AND name='Pivot Studio'");
+const plexId = plex.rows[0].id as string;
+const tasks = await client.execute(`SELECT title, status FROM Task WHERE companyId='${plexId}'`);
+console.log('Pivot Studio tasks:', tasks.rows.length, tasks.rows);
+const stages = await client.execute(`SELECT name, status FROM Stage WHERE companyId='${plexId}' ORDER BY "order"`);
+console.log('Pivot Studio stages:');
+stages.rows.forEach(r => console.log(`  [${r.status}] ${r.name}`));
+const events = await client.execute(`SELECT title, type, startAt FROM Event WHERE companyId='${plexId}' AND completed=0 ORDER BY startAt`);
+console.log('Pivot Studio events:');
+events.rows.forEach(r => console.log(`  [${r.type}] ${r.title} - ${r.startAt}`));
