@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Download, Upload, Moon, Sun, Monitor, User, Calendar, Info, AlertTriangle, Star, Lock } from "lucide-react"
+import { Download, Upload, Moon, Sun, Monitor, User, Calendar, AlertTriangle, Star, Lock } from "lucide-react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import type { LocalUser } from "@/types"
 
 interface DataStats {
@@ -387,75 +386,6 @@ export function SettingsPageClient({ user, dataStats }: SettingsPageClientProps)
               </Button>
             </div>
           </div>
-
-          <Separator />
-
-          <div>
-            <p className="text-sm font-medium mb-1">接続情報</p>
-            <div className="text-xs text-muted-foreground space-y-0.5">
-              <p>• DB: Turso (libsql)</p>
-              <p>• 認証: {process.env.NEXT_PUBLIC_AUTH_MODE === "auth" ? "Google OAuth" : "ローカルモード"}</p>
-              <p>• Node.js: {process.version ?? "不明"}</p>
-            </div>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/health")
-                  const data = await res.json()
-                  if (data.status === "ok") {
-                    toast.success(`DB接続OK (レイテンシ: ${data.latencyMs}ms)`)
-                  } else {
-                    toast.error("DB接続エラー")
-                  }
-                } catch {
-                  toast.error("接続テスト失敗")
-                }
-              }}
-              className="text-[10px] text-primary hover:text-primary/80 underline mt-1 block"
-            >
-              接続テスト
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* キーボードショートカット */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            ⌨️ キーボードショートカット
-          </CardTitle>
-          <CardDescription className="text-xs">よく使うショートカットの一覧</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
-            {[
-              { keys: "⌘K", label: "コマンドパレット（検索）" },
-              { keys: "?", label: "ショートカット一覧" },
-              { keys: "⌘⇧H", label: "ダッシュボードへ" },
-              { keys: "⌘⇧C", label: "企業一覧へ" },
-              { keys: "⌘⇧T", label: "タスクへ" },
-              { keys: "⌘⇧L", label: "カレンダーへ" },
-              { keys: "⌘⇧I", label: "面接ログへ" },
-              { keys: "⌘⇧S", label: "統計ページへ" },
-              { keys: "⌘⇧N", label: "企業を追加" },
-              { keys: "⌘⇧K", label: "ケース練習へ" },
-              { keys: "⌘⇧M", label: "OB訪問へ" },
-              { keys: "⌘S", label: "保存（ES・ノート）" },
-              { keys: "⌘P", label: "プレビュー切替（ノート）" },
-              { keys: "⌘B", label: "太字（ノートエディタ）" },
-              { keys: "S", label: "スター切替（企業詳細）" },
-              { keys: "E", label: "編集モード（企業詳細）" },
-              { keys: "1-5 / n,t,i", label: "タブ切替（企業詳細）" },
-              { keys: "→/←", label: "前後の質問（面接練習）" },
-              { keys: "Space", label: "回答表示（面接練習）" },
-            ].map(({ keys, label }) => (
-              <div key={keys} className="flex items-center justify-between py-1 border-b border-muted/50 last:border-0">
-                <span className="text-muted-foreground">{label}</span>
-                <kbd className="text-[10px] font-mono bg-muted border px-1.5 py-0.5 rounded">{keys}</kbd>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
@@ -517,89 +447,6 @@ export function SettingsPageClient({ user, dataStats }: SettingsPageClientProps)
         </Card>
       )}
 
-      {/* バージョン情報 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Info className="h-4 w-4" />
-            バージョン情報
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xs text-muted-foreground space-y-1.5">
-            <div className="flex justify-between">
-              <span>アプリバージョン</span>
-              <span className="font-mono font-medium text-foreground">v2.5.0</span>
-            </div>
-            <div className="flex justify-between">
-              <span>フレームワーク</span>
-              <span className="font-mono">Next.js 16 (App Router)</span>
-            </div>
-            <div className="flex justify-between">
-              <span>データベース</span>
-              <span className="font-mono">Turso (libSQL)</span>
-            </div>
-            <div className="flex justify-between">
-              <span>ORM</span>
-              <span className="font-mono">Prisma 7</span>
-            </div>
-            <div className="flex justify-between">
-              <span>ビルド日時</span>
-              <span className="font-mono">{new Date().toLocaleDateString("ja-JP")}</span>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs font-medium mb-2">v2.5.0 Gmail/Calendar連携・internshipステータス追加</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>📧 Gmail・Googleカレンダー連携で57社のデータを自動インポート</li>
-              <li>🎯 「インターン参加」ステータスを新設（シアン色で管理）</li>
-              <li>🔥 「最終選考」バナーをダッシュボードに追加（Pivot Studio・Sora Health）</li>
-              <li>📅 /today ページ新設（今日やること・面接直前チェックリスト）</li>
-              <li>🧠 タスクカンバンビュー・ポモドーロタイマー追加</li>
-              <li>🤖 AI最終面接対策・インターン戦略AIを企業詳細に追加</li>
-              <li>📋 ES管理バッジをサイドバーに追加（今週締切件数）</li>
-              <li>📊 企業一覧に「最終選考」「インターン」クイックフィルター追加</li>
-            </ul>
-            <p className="text-xs font-medium mb-2 mt-3">v2.1.0 商用品質強化アップデート</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>🏷️ グリッドカードにホバー時クイックアクション（スター・ステータス変更）</li>
-              <li>🔍 面接質問アーカイブにキーワード検索・ハイライト・コピーボタン</li>
-              <li>🔔 通知ベルにOB訪問お礼メール未送信通知追加</li>
-              <li>🔑 企業詳細にタブ切替キーボードショートカット（1-5, n, t, i）</li>
-              <li>⚠️ 企業詳細ページに停滞警告バナー（7日以上更新なし）</li>
-              <li>✨ AI志望動機ドラフト生成機能（企業詳細ノートタブ）</li>
-              <li>✉️ AI辞退メール生成機能（内定企業の次のアクション）</li>
-              <li>⏱️ 面接準備セクションに残り時間カウントダウン表示</li>
-              <li>📊 カンバンヘッダーに面接中企業数・スター数サマリー</li>
-              <li>🛡️ ErrorBoundaryコンポーネントでクラッシュ対策強化</li>
-            </ul>
-            <p className="text-xs font-medium mb-2 mt-3">v2.0.0 商用品質フルリリース</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>🏥 就活ヘルススコア（5項目100点満点・グレード評価）</li>
-              <li>🏆 就活マイルストーン達成バッジ</li>
-              <li>📝 ノートタブにテンプレートクイック作成</li>
-              <li>📊 ES詳細に締切カウントダウンとプログレスバー</li>
-              <li>🧠 ケースページに面接中企業バナー・AI練習問題生成</li>
-              <li>📚 ケースフレームワーク参照ライブラリ（6種類）</li>
-              <li>🔔 通知ベルに面接通知・サイドバーに面接中企業数バッジ</li>
-              <li>📱 ノートページモバイル対応・停滞フィルター</li>
-              <li>🔗 ES回答相互参照・OB訪問後ノート自動提案</li>
-              <li>✉️ お礼メールに署名付与・メーラー起動</li>
-              <li>💡 MarkdownレポートエクスポートAPI</li>
-            </ul>
-            <p className="text-xs font-medium mb-2 mt-3">v1.8.0 最終品質アップデート</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>🔔 通知センター（トップバーのベルアイコン）</li>
-              <li>📊 統計ページに選考コンバージョンファネル・AI分析・ケース評価推移</li>
-              <li>🎯 企業詳細に面接準備度スコア・選考フロービジュアル</li>
-              <li>📅 今日の面接がある場合の準備チェックリスト</li>
-              <li>🏢 企業一覧にグリッドカードビュー・直近予定フィルター</li>
-              <li>⌨️ 面接練習モードにキーボードショートカット</li>
-              <li>🔢 企業詳細の前後ナビゲーション（N/M社表示）</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
