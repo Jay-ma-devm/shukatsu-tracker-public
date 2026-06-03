@@ -76,6 +76,67 @@ const sampleCompaniesByStyle: Record<StyleType, { name: string; industry: string
   ],
 }
 
+type CompanyCreatePayload = {
+  name: string
+  industry?: string
+  position?: string
+  status: string
+  priority: number
+  starred: boolean
+}
+
+async function getApiErrorMessage(response: Response, fallback: string) {
+  try {
+    const body = (await response.json()) as {
+      error?: unknown
+      details?: {
+        fieldErrors?: Record<string, string[] | undefined>
+        formErrors?: string[]
+      }
+      code?: string
+    }
+
+    if (body.code === "PLAN_LIMIT") {
+      return typeof body.error === "string" && body.error.length > 0
+        ? body.error
+        : "無料プランは企業10社まで。Proにアップグレードしてください。"
+    }
+
+    const fieldError = body.details?.fieldErrors
+      ? Object.values(body.details.fieldErrors)
+          .flat()
+          .find((message): message is string => typeof message === "string" && message.length > 0)
+      : undefined
+
+    if (fieldError) return fieldError
+    if (typeof body.error === "string" && body.error.length > 0) return body.error
+    if (body.details?.formErrors?.[0]) return body.details.formErrors[0]
+  } catch {
+    // fall through to fallback message
+  }
+
+  return fallback
+}
+
+async function createCompany(payload: CompanyCreatePayload) {
+  const res = await fetch("/api/companies", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  const contentType = res.headers.get("content-type") ?? ""
+  if (res.redirected || res.url.includes("/signin") || !contentType.includes("application/json")) {
+    throw new Error("サインインが必要です。もう一度ログインしてから試してください")
+  }
+
+  if (!res.ok) {
+    throw new Error(await getApiErrorMessage(res, "企業の登録に失敗しました"))
+  }
+
+  return res.json()
+}
+
 interface OnboardingWizardProps {
   onComplete: () => void
 }
@@ -94,22 +155,16 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     if (!companyName.trim()) return
     setAdding(true)
     try {
-      const res = await fetch("/api/companies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: companyName.trim(),
-          status: companyStatus,
-          priority: 3,
-        }),
+      await createCompany({
+        name: companyName.trim(),
+        status: companyStatus,
+        priority: 3,
+        starred: false,
       })
-      if (res.ok) {
-        setStep(4)
-      } else {
-        toast.error("企業の登録に失敗しました")
-      }
-    } catch {
-      toast.error("エラーが発生しました")
+      setStep(4)
+      toast.success(`「${companyName.trim()}」を登録しました`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "企業の登録に失敗しました")
     } finally {
       setAdding(false)
     }
@@ -121,25 +176,28 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     setLoadingSample(true)
     const samples = sampleCompaniesByStyle[selectedStyle]
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         samples.map((s) =>
-          fetch("/api/companies", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: s.name,
-              industry: s.industry,
-              position: s.position,
-              status: "applied",
-              priority: 3,
-            }),
+          createCompany({
+            name: s.name,
+            industry: s.industry,
+            position: s.position,
+            status: "applied",
+            priority: 3,
+            starred: false,
           })
         )
       )
+
+      const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected")
+      if (failed) {
+        throw failed.reason instanceof Error ? failed.reason : new Error("サンプルデータの追加に失敗しました")
+      }
+
       toast.success("サンプルデータを追加しました！")
       setStep(4)
-    } catch {
-      toast.error("サンプルデータの追加に失敗しました")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "サンプルデータの追加に失敗しました")
     } finally {
       setLoadingSample(false)
     }
